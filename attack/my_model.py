@@ -1,12 +1,12 @@
 from keras.datasets import fashion_mnist
 from keras.models import Model
-from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Input
+from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Input, BatchNormalization
 import keras.utils
 import os
 from util import ensure_pre_dirs_exists
 
 batch_size = 128
-epochs = 10
+epochs = 30
 num_classes = 10
 img_rows, img_cols = 28, 28
 
@@ -25,6 +25,7 @@ def my_model(inputs):
     outputs = Flatten(name="flatten")(outputs)
     outputs = Dense(1024, activation='relu', name="dense_1")(outputs)
     outputs = Dense(1024, activation='relu', name="dense_2")(outputs)
+    outputs = BatchNormalization(name="bn_1")(outputs)
     outputs = Dense(num_classes, activation='softmax', name="dense_3")(outputs)
     model = Model(inputs=inputs, outputs=outputs)
     return model

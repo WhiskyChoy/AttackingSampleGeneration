@@ -1,6 +1,6 @@
 from keras.datasets import fashion_mnist
 from keras.models import Model, load_model
-from keras.layers import Dense, Flatten, Input, BatchNormalization
+from keras.layers import Dense, Flatten, Input, BatchNormalization, Conv2D, MaxPooling2D
 from keras import backend as K
 import keras.utils
 import tensorflow as tf
@@ -9,14 +9,17 @@ import os
 from PIL import Image
 from util import ensure_pre_dirs_exists
 
-from my_model import get_my_model_output
+from my_model import get_my_model_output, train_my_model
+from my_model import my_model_path
+from my_model import num_classes
 
 attack_model_path = os.path.join(os.path.dirname(__file__), "../model/attack_model.h5")
 test_image_path = os.path.join(os.path.dirname(__file__), "../test_image/")
 
 c = 0.02
 t = 0.25
-num_classes = 10
+batch_size = 128
+epochs = 20
 img_rows, img_cols = 28, 28
 
 ensure_pre_dirs_exists(attack_model_path, test_image_path)
@@ -82,7 +85,13 @@ def train_attack_model():
     input_shape = (img_rows, img_cols, 1)
 
     inputs = Input(shape=input_shape)
-    outputs = Flatten()(inputs)
+    outputs = Conv2D(32, kernel_size=(5, 5),
+                     activation='relu')(inputs)
+    outputs = MaxPooling2D(pool_size=(2, 2))(outputs)
+    outputs = Conv2D(64, kernel_size=(5, 5),
+                     activation='relu')(outputs)
+    outputs = MaxPooling2D(pool_size=(2, 2))(outputs)
+    outputs = Flatten()(outputs)
     outputs = Dense(1024, activation='relu')(outputs)
     outputs = Dense(1024, activation='relu')(outputs)
     outputs = Dense(img_rows * img_cols, activation='relu'
@@ -94,8 +103,8 @@ def train_attack_model():
                   optimizer=keras.optimizers.Adam(),
                   metrics=[my_acc, my_ssim, my_score])
     model.fit(x_train, y_train,
-              batch_size=128,
-              epochs=20,
+              batch_size=batch_size,
+              epochs=epochs,
               verbose=1,
               validation_data=(x_test, y_test))
 
@@ -113,11 +122,13 @@ def ai_test(images, shape):
 
 
 def train():
-    # train_my_model()
-    train_attack_model()
+    if not (os.path.exists(my_model_path) and os.path.isfile(my_model_path)):
+        train_my_model()
+    if not (os.path.exists(attack_model_path) and os.path.isfile(attack_model_path)):
+        train_attack_model()
 
 
-def test():
+def my_test():
     (_, _), (x_test, y_test) = fashion_mnist.load_data()
     x_test = x_test[0:1000].reshape(-1, img_rows, img_cols, 1)
     input_shape = (img_rows, img_cols, 1)
@@ -131,4 +142,4 @@ def test():
 
 
 # train()
-test()
+# my_test()
